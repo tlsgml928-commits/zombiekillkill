@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>네온 다크 픽셀 좀비 서바이벌</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Pretendard", "Malgun Gothic", Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at top, #090d16 0%, #05070c 100%);
+      color: white;
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: auto 330px;
+      gap: 24px;
+      padding: 24px;
+      align-items: start;
+    }
+
+    .game-box {
+      padding: 12px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, #0f172a, #020617);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    canvas {
+      display: block;
+      width: 900px;
+      height: 540px;
+      background: #030712;
+      border-radius: 16px;
+      border: 2px solid #1e293b;
+      image-rendering: pixelated;
+    }
+
+    .panel {
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(3, 7, 18, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      background: linear-gradient(to right, #38bdf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 20px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .label {
+      display: block;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+
+    .value {
+      display: block;
+      font-size: 22px;
+      font-weight: 900;
+      color: #f8fafc;
+    }
+
+    #hp { color: #f43f5e; text-shadow: 0 0 10px rgba(244, 63, 94, 0.3); }
+    #score { color: #38bdf8; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+
+    .boost-on {
+      color: #facc15 !important;
+      text-shadow: 0 0 15px rgba(250, 204, 21, 0.8) !important;
+    }
+    .boss-on {
+      color: #a855f7 !important;
+      text-shadow: 0 0 15px rgba(168, 85, 247, 0.8) !important;
+    }
+
+    .weapon-grid {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .weapon {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.05);
+      text-align: left;
+      color: #94a3b8;
+    }
+
+    .weapon:hover {
+      background: #273549;
+      color: #f8fafc;
+    }
+
+    .weapon.active {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+      border-color: #60a5fa;
+    }
+
+    .start {
+      background: linear-gradient(to right, #10b981, #059669);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+    .start:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3); }
+
+    .pause {
+      background: #334155;
+      margin-top: 8px;
+    }
+
+    .controls {
+      margin: 20px 0 0;
+      padding-left: 16px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .controls li strong { color: #94a3b8; }
+
+    .notice {
+      margin-top: 16px;
+      min-height: 40px;
+      color: #facc15;
+      font-weight: 700;
+      line-height: 1.5;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 1280px) {
+      .wrap { grid-template-columns: 1fr; }
+      canvas { width: 100%; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="game-box">
+      <canvas id="game" width="900" height="540"></canvas>
+    </section>
+
+    <aside class="panel">
+      <h1>NEON PIXEL</h1>
+      <span class="subtitle">Z-SURVIVAL SYSTEM</span>
+
+      <div class="stat">
+        <div class="card">
+          <span class="label">LIFE</span>
+          <span class="value" id="hp">100</span>
+        </div>
+        <div class="card">
+          <span class="label">SCORE</span>
+          <span class="value" id="score">0</span>
+        </div>
+        <div class="card">
+          <span class="label">ROUND</span>
+          <span class="value" id="round">1</span>
+        </div>
+        <div class="card">
+          <span class="label">TIME</span>
+          <span class="value" id="timeLeft">60</span>
+        </div>
+        <div class="card">
+          <span class="label">WEAPON</span>
+          <span class="value" id="weaponName">총</span>
+        </div>
+        <div class="card">
+          <span class="label">COMBO</span>
+          <span class="value" id="combo">0</span>
+        </div>
+        <div class="card">
+          <span class="label">BOOST</span>
+          <span class="value" id="boost">OFF</span>
+        </div>
+        <div class="card">
+          <span class="label">BOSS</span>
+          <span class="value" id="bossState">READY</span>
+        </div>
+      </div>
+
+      <div class="weapon-grid">
+        <button class="weapon active" data-weapon="gun">1 자동 조준 레이저 라이플</button>
+        <button class="weapon" data-weapon="knife">2 플라즈마 블레이드</button>
+        <button class="weapon" data-weapon="spear">3 고전압 일렉트릭 랜스</button>
+      </div>
+
+      <button class="start" id="startBtn">SYSTEM START</button>
+      <button class="pause" id="pauseBtn">PAUSE</button>
+
+      <ul class="controls">
+        <li><strong>방향키 / WASD</strong> : 캐릭터 이동</li>
+        <li><strong>Spacebar</strong> : 무기 공격 (유지 가능)</li>
+        <li><strong>1, 2, 3</strong> : 실시간 무기 스왑</li>
+        <li><strong>P</strong> : 게임 일시정지</li>
+      </ul>
+
+      <div class="notice" id="notice"></div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // UI Elements
+    const hpEl = document.getElementById("hp");
+    const scoreEl = document.getElementById("score");
+    const roundEl = document.getElementById("round");
+    const timeLeftEl = document.getElementById("timeLeft");
+    const weaponNameEl = document.getElementById("weaponName");
+    const comboEl = document.getElementById("combo");
+    const boostEl = document.getElementById("boost");
+    const bossStateEl = document.getElementById("bossState");
+    const noticeEl = document.getElementById("notice");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const weaponBtns = document.querySelectorAll(".weapon");
+
+    const keys = {};
+    let player, zombies, bullets, effects, particles;
+    let score, round, hp, running = false, paused = false, selectedWeapon = "gun";
+    let lastTime = 0, spawnTimer = 0, attackCooldown = 0;
+    let combo = 0, comboTimer = 0, boostTimer = 0, roundTimer = 0;
+    let bossSpawned = false, bossAlive = false, roundClearPause = 0;
+
+    const ROUND_DURATION = 60000;
+    const BOSS_TIME = 45000;
+
+    const weaponData = {
+      gun: { name: "네온 라이플", range: 850, damage: 55, cooldown: 130, bulletSpeed: 16, pierce: 3, aimAssistAngle: 0.75 },
+      knife: { name: "플라즈마 검", range: 140, damage: 90, cooldown: 90, hitAngle: -0.1 },
+      spear: { name: "일렉트릭 창", range: 240, damage: 130, cooldown: 220, hitAngle: -0.25 }
+    };
+
+    // 정적 배경 요소 생성 (어두운 디스토피아 도시 빌딩들)
+    const backgroundBuildings = [];
+    for(let i=0; i<12; i++) {
+      backgroundBuildings.push({
+        x: Math.random() * W,
+        y: 120 + Math.random() * 80,
+        w: 60 + Math.random() * 80,
+        h: 120 + Math.random() * 160,
+        color: ["#090f1d", "#0b1326", "#070c16"][Math.floor(Math.random()*3)],
+        neonColor: ["#06b6d4", "#3b82f6", "#d946ef", "#10b981"][Math.floor(Math.random()*4)],
+        windows: Array.from({length: 15}, () => Math.random() > 0.7)
+      });
+    }
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function norm(x, y) { const len = Math.hypot(x, y) || 1; return { x: x / len, y: y / len }; }
+    function isBoostOn() { return boostTimer > 0; }
+    function getBoostRate() { return isBoostOn() ? 1.5 : 1; }
+
+    function setWeapon(type) {
+      selectedWeapon = type;
+      weaponBtns.forEach(btn => btn.classList.toggle("active", btn.dataset.weapon === type));
+      updateInfo();
+    }
+
+    // 픽셀 스타일 사각형 그리기 함수
+    function drawPixelRect(x, y, w, h, fill, stroke = null) {
+      ctx.fillStyle = fill;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+      if(stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+      }
+    }
+
+    function addParticles(x, y, color, count = 5, speed = 3) {
+      for(let i=0; i<count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const s = Math.random() * speed + 1;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * s,
+          vy: Math.sin(angle) * s,
+          size: Math.random() * 3 + 2,
+          color,
+          life: Math.random() * 20 + 10
+        });
+      }
+    }
+
+    function resetGame() {
+      player = { x: W / 2, y: H / 2, r: 14, speed: 4.5, facing: { x: 1, y: 0 }, step: 0, invincibleTimer: 0, vx: 0, vy: 0 };
+      zombies = []; bullets = []; effects = []; particles = [];
+      score = 0; round = 1; hp = 100; combo = 0; comboTimer = 0; boostTimer = 0; roundTimer = 0;
+      bossSpawned = false; bossAlive = false; roundClearPause = 0; spawnTimer = 0; attackCooldown = 0;
+      running = true; paused = false;
+      noticeEl.textContent = "SYSTEM ONLINE. 밀려오는 격 격리 개체를 처치하세요.";
+      updateInfo();
+    }
+
+    function updateInfo() {
+      const remaining = Math.max(0, Math.ceil((ROUND_DURATION - roundTimer) / 1000));
+      hpEl.textContent = Math.max(0, Math.floor(hp));
+      scoreEl.textContent = score;
+      roundEl.textContent = round;
+      timeLeftEl.textContent = remaining;
+      weaponNameEl.textContent = weaponData[selectedWeapon].name;
+      comboEl.textContent = combo;
+      boostEl.textContent = isBoostOn() ? Math.ceil(boostTimer / 1000) + "s" : "OFF";
+      boostEl.classList.toggle("boost-on", isBoostOn());
+
+      if (bossAlive) { bossStateEl.textContent = "CRITICAL"; bossStateEl.className = "value boss-on"; }
+      else if (bossSpawned) { bossStateEl.textContent = "CLEAR"; bossStateEl.className = "value"; }
+      else { bossStateEl.textContent = remaining <= 15 ? "WARNING" : "STANDBY"; bossStateEl.className = "value"; }
+    }
+
+    function findTargetInFront(range, minDot) {
+      let best = null, bestDistance = Infinity;
+      zombies.forEach(z => {
+        const d = dist(player, z);
+        if (d > range) return;
+        const dir = norm(z.x - player.x, z.y - player.y);
+        const dot = dir.x * player.facing.x + dir.y * player.facing.y;
+        if (dot >= minDot && d < bestDistance) { best = z; bestDistance = d; }
+      });
+      return best;
+    }
+
+    function spawnZombie(isBoss = false) {
+      const edge = Math.floor(Math.random() * 4);
+      let x, y;
+      if (edge === 0) { x = rand(50, W - 50); y = -40; }
+      if (edge === 1) { x = W + 40; y = rand(50, H - 50); }
+      if (edge === 2) { x = rand(50, W - 50); y = H + 40; }
+      if (edge === 3) { x = -40; y = rand(50, H - 50); }
+
+      if (isBoss) {
+        const hpBase = 600 + round * 200;
+        zombies.push({ x, y, r: 26, speed: 1.0 + round * 0.05, hp: hpBase, maxHp: hpBase, hitCooldown: 0, slowTimer: 0, boss: true, stompTimer: 0 });
+        bossAlive = true;
+        noticeEl.textContent = "⚠️ WARNING: 대형 변이 개체가 구역에 진입했습니다!";
+        return;
+      }
+      const hpBase = 35 + round * 15;
+      const speedBase = 1.2 + round * 0.08;
+      zombies.push({ x, y, r: 14, speed: rand(speedBase, speedBase + 0.5), hp: hpBase, maxHp: hpBase, hitCooldown: 0, slowTimer: 0, boss: false });
+    }
+
+    function movePlayer(delta) {
+      let dx = 0, dy = 0;
+      if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dx -= 1;
+      if (keys["ArrowRight"] || keys["d"] || keys["D"]) dx += 1;
+      if (keys["ArrowUp"] || keys["w"] || keys["W"]) dy -= 1;
+      if (keys["ArrowDown"] || keys["s"] || keys["S"]) dy += 1;
+
+      if (dx !== 0 || dy !== 0) {
+        const n = norm(dx, dy);
+        const bSpeed = isBoostOn() ? 1.4 : 1;
+        player.x += n.x * player.speed * bSpeed;
+        player.y += n.y * player.speed * bSpeed;
+        player.facing = n;
+        player.step += delta * 0.015;
+        if(Math.random() > 0.6) addParticles(player.x, player.y + 12, isBoostOn() ? "#facc15" : "#3b82f6", 1, 1);
+      }
+
+      player.x += player.vx; player.y += player.vy;
+      player.vx *= 0.8; player.vy *= 0.8;
+      player.x = clamp(player.x, 20, W - 20); player.y = clamp(player.y, 20, H - 20);
+    }
+
+    function attack() {
+      if (!running || paused || attackCooldown > 0 || roundClearPause > 0) return;
+      const w = weaponData[selectedWeapon];
+      const boost = getBoostRate();
+      attackCooldown = w.cooldown / (isBoostOn() ? 1.6 : 1);
+
+      if (selectedWeapon === "gun") {
+        const target = findTargetInFront(w.range, 0.7);
+        let aim = player.facing;
+        if (target) aim = norm(target.x - player.x, target.y - player.y);
+
+        bullets.push({
+          x: player.x + aim.x * 18, y: player.y + aim.y * 18,
+          vx: aim.x * w.bulletSpeed, vy: aim.y * w.bulletSpeed,
+          r: 4, damage: Math.floor(w.damage * boost), life: 60, pierce: w.pierce
+        });
+
+        effects.push({ type: "muzzle", x: player.x + aim.x * 20, y: player.y + aim.y * 20, life: 5, color: "#38bdf8" });
+        return;
+      }
+
+      const reach = w.range * (isBoostOn() ? 1.2 : 1);
+      const hitX = player.x + player.facing.x * reach;
+      const hitY = player.y + player.facing.y * reach;
+
+      effects.push({
+        type: selectedWeapon,
+        x1: player.x, y1: player.y, x2: hitX, y2: hitY,
+        life: 6, color: selectedWeapon === "knife" ? "#a855f7" : "#06b6d4"
+      });
+
+      zombies.forEach(z => {
+        const d = dist(player, z);
+        const dir = norm(z.x - player.x, z.y - player.y);
+        const dot = dir.x * player.facing.x + dir.y * player.facing.y;
+        if (d < reach + z.r + 15 && dot > w.hitAngle) {
+          z.hp -= Math.floor(w.damage * boost);
+          z.slowTimer = 120;
+          z.vx += player.facing.x * 4; z.vy += player.facing.y * 4; // 넉백
+          addParticles(z.x, z.y, selectedWeapon === "knife" ? "#c084fc" : "#22d3ee", 6, 4);
+        }
+      });
+    }
+
+    function updateGame(delta) {
+      // 투사체 업데이트
+      bullets.forEach(b => { b.x += b.vx; b.y += b.vy; b.life--; });
+      bullets.forEach(b => {
+        zombies.forEach(z => {
+          if (b.life > 0 && dist(b, z) < b.r + z.r) {
+            z.hp -= b.damage;
+            z.slowTimer = 80;
+            z.vx += (b.vx / w.bulletSpeed) * 2; z.vy += (b.vy / w.bulletSpeed) * 2;
+            b.pierce--; if (b.pierce <= 0) b.life = 0;
+            addParticles(z.x, z.y, "#38bdf8", 4, 3);
+          }
+        });
+      });
+      bullets = bullets.filter(b => b.life > 0);
+
+      // 좀비 업데이트
+      let killedCount = 0, bossKilled = false;
+      zombies.forEach(z => {
+        if (z.hitCooldown > 0) z.hitCooldown -= delta;
+        if (z.slowTimer > 0) z.slowTimer -= delta;
+        
+        z.x += z.vx; z.y += z.vy;
+        z.vx *= 0.8; z.vy *= 0.8;
+
+        const dir = norm(player.x - z.x, player.y - z.y);
+        const currentSpeed = z.speed * (z.slowTimer > 0 ? 0.4 : 1);
+        z.x += dir.x * currentSpeed; z.y += dir.y * currentSpeed;
+
+        if (z.boss) {
+          z.stompTimer += delta;
+          if (z.stompTimer > 3500) {
+            z.stompTimer = 0;
+            effects.push({ type: "shockwave", x: z.x, y: z.y, r: 120, maxR: 120, life: 15, color: "#9333ea" });
+            if (dist(player, z) < 120 && player.invincibleTimer <= 0) {
+              hp -= 15; player.invincibleTimer = 600;
+              const k = norm(player.x - z.x, player.y - z.y);
+              player.vx += k.x * 8; player.vy += k.y * 8;
+            }
+          }
+        }
+
+        if (dist(player, z) < player.r + z.r && player.invincibleTimer <= 0) {
+          hp -= z.boss ? 20 : 8;
+          player.invincibleTimer = 800;
+          const k = norm(player.x - z.x, player.y - z.y);
+          player.vx += k.x * 6; player.vy += k.y * 6;
+          if (hp <= 0) { running = false; noticeEl.textContent = `SYSTEM FAILURE. 최종 스코어: ${score}`; }
+        }
+      });
+
+      zombies = zombies.filter(z => {
+        if (z.hp <= 0) {
+          if (z.boss) bossKilled = true; else killedCount++;
+          addParticles(z.x, z.y, z.boss ? "#a855f7" : "#10b981", 12, 5);
+          return false;
+        }
+        return true;
+      });
+
+      if (killedCount > 0) {
+        score += killedCount * 100; combo += killedCount; comboTimer = 3000;
+        if (combo >= 10 && boostTimer <= 0) { boostTimer = 7000; combo = 0; hp = Math.min(100, hp + 10); noticeEl.textContent = "⚡ OVERLOAD BOOST ACTIVATED! ⚡"; }
+      }
+      if (bossKilled) { bossAlive = false; score += 2000; roundClearPause = 2000; noticeEl.textContent = "STAGE CLEAR. 구역이 안정화되었습니다."; }
+
+      // 라운드 및 스폰 타이머 업데이트
+      if (roundClearPause > 0) {
+        roundClearPause -= delta;
+        if (roundClearPause <= 0) { round++; roundTimer = 0; bossSpawned = false; noticeEl.textContent = `ROUND ${round} 진입. 격리벽 가동.`; }
+      } else {
+        roundTimer += delta; spawnTimer += delta;
+        if (!bossSpawned && roundTimer >= BOSS_TIME) { bossSpawned = true; spawnZombie(true); }
+        const interval = Math.max(400, 1800 - round * 150);
+        if (spawnTimer >= interval && !bossAlive) { spawnTimer = 0; for(let i=0; i<Math.min(4, Math.ceil(round/2)); i++) spawnZombie(false); }
+      }
+
+      // 각종 버프/디버프 타이머
+      if (attackCooldown > 0) attackCooldown -= delta;
+      if (comboTimer > 0) { comboTimer -= delta; if (comboTimer <= 0) combo = 0; }
+      if (boostTimer > 0) { boostTimer -= delta; if (boostTimer <= 0) noticeEl.textContent = "부스트 출력이 정상으로 감소했습니다."; }
+      if (player.invincibleTimer > 0) player.invincibleTimer -= delta;
+
+      // 파티클 및 이펙트 필터링
+      particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; });
+      particles = particles.filter(p => p.life > 0);
+      effects.forEach(e => e.life--);
+      effects = effects.filter(e => e.life > 0);
+
+      updateInfo();
+    }
+
+    // --- 고감도 다크 네온 픽셀 그래픽 렌더링 시스템 ---
+    function draw() {
+      // 1. 딥 다크 그리드 코팅 바닥
+      ctx.fillStyle = "#040712";
+      ctx.fillRect(0, 0, W, H);
+      
+      ctx.strokeStyle = "#0d1527";
+      ctx.lineWidth = 2;
+      for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      // 2. 배경 스카이라인 원경 도트 빌딩 디테일
+      backgroundBuildings.forEach(b => {
+        drawPixelRect(b.x, b.y - (H - b.y), b.w, H - b.y, b.color);
+        // 빌딩 테두리 네온 스티치
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.6)";
+        ctx.strokeRect(b.x, b.y - (H - b.y), b.w, H - b.y);
+      });
+
+      // 3. 발밑 어두운 네온 반사광 & 바닥 섀도우 처리
+      zombies.forEach(z => {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.beginPath(); ctx.ellipse(z.x, z.y + z.r - 2, z.r, z.r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.beginPath(); ctx.ellipse(player.x, player.y + player.r - 2, player.r, player.r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+
+      // 4. 좀비 픽셀 크리처 렌더링
+      zombies.forEach(z => {
+        ctx.save();
+        ctx.translate(Math.round(z.x), Math.round(z.y));
+        const walk = Math.sin(roundTimer * 0.01) * 2;
+        
+        if (z.boss) {
+          // 보스: 고대비 퍼플 디스토션 크리처
+          drawPixelRect(-24, -40, 48, 48, "#2e1065", "#7c3aed"); // 바디
+          drawPixelRect(-16, -56, 32, 20, "#4c1d95", "#a78bfa"); // 머리
+          // 빛나는 핵
+          drawPixelRect(-6, -32, 12, 12, "#f43f5e");
+          // 안광 호러 포인트
+          drawPixelRect(-10, -48, 6, 4, "#ea580c");
+          drawPixelRect(4, -48, 6, 4, "#ea580c");
+          
+          // 상단 네온 체력게이지 게이지
+          const pct = z.hp / z.maxHp;
+          drawPixelRect(-35, -68, 70, 5, "#1e293b");
+          drawPixelRect(-35, -68, 70 * pct, 5, "#c084fc");
+        } else {
+          // 일반 좀비: 바이오그린 사이버 좀비
+          drawPixelRect(-12, -20, 24, 24, "#022c22", "#10b981"); // 몸통
+          drawPixelRect(-9, -30, 18, 12, "#064e3b", "#34d399");  // 머리
+          drawPixelRect(-5, -24, 10, 4, "#65a30d");             // 마스크 및 가슴포인트
+          // 양방향 드롭 아이
+          drawPixelRect(-6, -25, 3, 3, "#ef4444");
+          drawPixelRect(3, -25, 3, 3, "#ef4444");
+        }
+        ctx.restore();
+      });
+
+      // 5. 플레이어 픽셀 에이전트 렌더링
+      if (!(player.invincibleTimer > 0 && Math.floor(player.invincibleTimer / 40) % 2 === 0)) {
+        ctx.save();
+        ctx.translate(Math.round(player.x), Math.round(player.y));
+        if (player.facing.x < 0) ctx.scale(-1, 1);
+
+        // 오버로드 부스트 상태 아우라 박스 크래프트
+        if (isBoostOn()) {
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.4)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-20, -36, 40, 50);
+        }
+
+        // 도트 레이어링 체계
+        drawPixelRect(-10, -22, 20, 24, "#0f172a", "#3b82f6"); // 기동 슈트 몸체
+        drawPixelRect(-8, -32, 16, 12, "#1e293b", "#60a5fa");  // 헬멧 구조 머리
+        drawPixelRect(-3, -27, 10, 4, "#22d3ee");              // 네온 고글 바이저 (핵심 포인트)
+
+        // 이동 픽셀 다리 모션 파츠
+        const wave = Math.sin(player.step) * 4;
+        drawPixelRect(-8, 2, 5, 6 + wave, "#1e293b");
+        drawPixelRect(3, 2, 5, 6 - wave, "#1e293b");
+
+        // 웨폰 홀더 장착 아웃라인 리프레시
+        if (selectedWeapon === "gun") {
+          drawPixelRect(6, -14, 16, 6, "#334155", "#64748b");
+          drawPixelRect(16, -8, 4, 6, "#1e293b");
+        } else if (selectedWeapon === "knife") {
+          drawPixelRect(6, -26, 5, 20, "#c084fc", "#a855f7");
+        } else if (selectedWeapon === "spear") {
+          drawPixelRect(-15, -11, 44, 4, "#475569");
+          drawPixelRect(24, -14, 10, 10, "#22d3ee", "#06b6d4");
+        }
+        ctx.restore();
+      }
+
+      // 6. 이펙트 및 스파크 파티클 오버레이 (네온 글로우 스타일 블렌딩)
+      ctx.shadowBlur = 8;
+      bullets.forEach(b => {
+        ctx.shadowColor = isBoostOn() ? "#facc15" : "#38bdf8";
+        drawPixelRect(b.x - b.r, b.y - b.r, b.r*2, b.r*2, isBoostOn() ? "#facc15" : "#38bdf8");
+      });
+
+      particles.forEach(p => {
+        ctx.shadowColor = p.color;
+        drawPixelRect(p.x, p.y, p.size, p.size, p.color);
+      });
+      ctx.shadowBlur = 0; // 초기화
+
+      effects.forEach(e => {
+        ctx.save();
+        if (e.type === "muzzle") {
+          ctx.fillStyle = e.color;
+          ctx.shadowBlur = 10; ctx.shadowColor = e.color;
+          ctx.fillRect(e.x - 6, e.y - 6, 12, 12);
+        } else if (e.type === "knife" || e.type === "spear") {
+          ctx.strokeStyle = e.color;
+          ctx.lineWidth = e.life * 1.5;
+          ctx.shadowBlur = 15; ctx.shadowColor = e.color;
+          ctx.beginPath(); ctx.moveTo(e.x1, e.y1); ctx.lineTo(e.x2, e.y2); ctx.stroke();
+        } else if (e.type === "shockwave") {
+          ctx.strokeStyle = e.color;
+          ctx.lineWidth = 4;
+          ctx.shadowBlur = 12; ctx.shadowColor = e.color;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r * (1 - e.life / 15), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    }
+
+    function loop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      let delta = timestamp - lastTime;
+      if (delta > 100) delta = 16;
+      lastTime = timestamp;
+
+      if (running && !paused) { updateGame(delta); }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // Controls
+    window.addEventListener("keydown", e => {
+      keys[e.key] = true;
+      if (e.key === "1") setWeapon("gun");
+      if (e.key === "2") setWeapon("knife");
+      if (e.key === "3") setWeapon("spear");
+      if (e.key === "p" || e.key === "P") { paused = !paused; pauseBtn.textContent = paused ? "RESUME" : "PAUSE"; }
+    });
+    window.addEventListener("keyup", e => { keys[e.key] = false; });
+
+    startBtn.addEventListener("click", () => { resetGame(); startBtn.textContent = "SYSTEM REBOOT"; });
+    pauseBtn.addEventListener("click", () => { if (running) { paused = !paused; pauseBtn.textContent = paused ? "RESUME" : "PAUSE"; } });
+    weaponBtns.forEach(btn => btn.addEventListener("click", () => { if (running) setWeapon(btn.dataset.weapon); }));
+
+    // 인트로 대기화면 렌더링
+    ctx.fillStyle = "#040712"; ctx.fillRect(0, 0, W, H);
+    ctx.font = "bold 18px 'Courier New', monospace"; ctx.fillStyle = "#64748b"; ctx.textAlign = "center";
+    ctx.fillText("PRESS 'SYSTEM START' BUTTON TO INITIALIZE", W/2, H/2);
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
